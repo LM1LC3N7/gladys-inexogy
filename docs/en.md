@@ -88,7 +88,10 @@ margin grows with the time since the last value).
 fingerprint (salted) of refused credentials only (erased at the first
 success), and the reference of each consumption index. Never the password,
 the e-mail, a serial number nor an address: the location inexogy keeps for a
-meter is never read. The logs and the status hold our own words only.
+meter is never read. The logs and the status hold our own words only. In
+Gladys itself, the serial number of a meter names its device, and its full
+serial number and make are parameters of the device (kept in the Gladys
+database).
 
 ## Limits
 

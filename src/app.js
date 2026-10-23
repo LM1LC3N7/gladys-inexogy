@@ -37,6 +37,7 @@ import {
   ATTEMPT_SAVE_EVERY,
   INDEX_MAX_KW,
   INDEX_SLACK_KWH,
+  ID_PATTERN,
   KINDS,
   LIVE_STALE_AFTER,
   MAX_KEPT_INDEXES,
@@ -196,6 +197,10 @@ export class InexogyApp {
     this.data = undefined;
     /** By meter id: what its readings showed, only grows. */
     this.caps = new Map();
+    /** By meter id: a reading refused (401/403), `{ count, nextAt (monotonic) }`. */
+    this.denied = new Map();
+    /** The meter list was asked again after every reading was refused (once per streak). */
+    this.listRechecked = false;
     this.failures = 0;
     this.nextTryAt = undefined;
     this.lastError = undefined;
@@ -294,9 +299,23 @@ export class InexogyApp {
     }
     const now = this.now();
     if (this.pause && now < this.pause.until) {
-      due = Math.max(due, mono + (this.pause.until - now));
+      due = Math.max(due, mono + this.pauseLeft(now));
     }
     return due;
+  }
+
+  /**
+   * The time left in the pause, never above PAUSE_MAX at each use (review 1,
+   * M3): a wall clock set back never makes it longer.
+   */
+  pauseLeft(now = this.now()) {
+    if (!this.pause) {
+      return 0;
+    }
+    if (this.pause.until - now > PAUSE_MAX) {
+      this.pause = { ...this.pause, until: now + PAUSE_MAX };
+    }
+    return Math.max(0, this.pause.until - now);
   }
 
   /** One timer: the next read when it is due; none while the credentials are refused. */
@@ -389,6 +408,7 @@ export class InexogyApp {
     let stopped;
     let serverErrors = 0;
     let authErrors = 0;
+    let attempted = 0;
     let lastServer;
     for (const meter of this.meterList.meters) {
       if (!SUPPORTED.has(meter.kind)) {
@@ -402,10 +422,19 @@ export class InexogyApp {
         entry.failed = true;
         continue;
       }
+      const denied = this.denied.get(meter.id);
+      if (denied && mono < denied.nextAt) {
+        // Access refused to this meter: asked again later, spaced (review 1, M1).
+        entry.failed = true;
+        entry.denied = true;
+        continue;
+      }
+      attempted += 1;
       try {
         const { reading, date } = await client.readLastReading(meter.id);
         entry.reading = reading;
         entry.date = date;
+        this.denied.delete(meter.id);
       } catch (err) {
         if (gone()) return;
         entry.failed = true;
@@ -419,6 +448,13 @@ export class InexogyApp {
           lastServer = err;
         } else if (err?.code === 'unauthorized' || err?.code === 'forbidden') {
           authErrors += 1;
+          entry.denied = true;
+          // Spaced: the interval, doubled at each refusal, up to 1 h.
+          const count = Math.min((denied?.count ?? 0) + 1, 32);
+          this.denied.set(meter.id, {
+            count,
+            nextAt: mono + Math.min(this.interval() * 2 ** (count - 1), RETRY_MAX),
+          });
         }
       }
       if (gone()) return;
@@ -427,11 +463,14 @@ export class InexogyApp {
       // Every meter answered 5xx: the cloud is down, a pause for all.
       stopped = lastServer;
     }
-    if (entries.length > 0 && authErrors === entries.length) {
-      // Every meter refused (a password changed at inexogy since the list was
-      // read): the meter list is asked at the next read, where a refusal is
-      // final, rather than refused readings every interval for an hour.
+    if (attempted > 0 && authErrors === attempted && !this.listRechecked) {
+      // Every meter read refused (a password changed at inexogy since the
+      // list was read): the meter list is asked ONCE at the next read, where
+      // a refusal is final. If it still answers, the readings stay spaced.
       this.meterListAt = Number.NEGATIVE_INFINITY;
+      this.listRechecked = true;
+    } else if (attempted > authErrors) {
+      this.listRechecked = false;
     }
     await this.succeeded(entries, { unsupported }, mono, gone, stopped);
   }
@@ -494,7 +533,8 @@ export class InexogyApp {
     }
     this.notes = {
       ...freshNotes(),
-      failing: entries.filter((e) => e.failed).length,
+      failing: entries.filter((e) => e.failed && !e.denied).length,
+      denied: entries.filter((e) => e.denied).length,
       truncated: this.meterList.truncated,
       skipped: this.meterList.skipped,
       unsupported: unsupported + empty,
@@ -589,7 +629,7 @@ export class InexogyApp {
     const notes = held.length > 0 ? [T.notes.held(held)] : [];
     const now = this.now();
     if (this.pause && now < this.pause.until) {
-      return [false, T.paused(this.pause, this.pause.until - now, notes)];
+      return [false, T.paused(this.pause, this.pauseLeft(now), notes)];
     }
     if (this.lastError && this.failures > 0) {
       const wait = Math.max(0, (this.nextTryAt ?? 0) - this.monotonic());
@@ -603,6 +643,7 @@ export class InexogyApp {
     }
     const extra = [];
     if (this.createdDevices().length === 0) extra.push(T.notes.noDevice);
+    if (this.notes.denied > 0) extra.push(T.notes.denied(this.notes.denied));
     if (this.notes.failing > 0) extra.push(T.notes.failing(this.notes.failing));
     if (this.notes.truncated) extra.push(T.notes.truncated);
     if (this.notes.skipped > 0) extra.push(T.notes.skipped(this.notes.skipped));
@@ -721,9 +762,21 @@ export class InexogyApp {
     await this.discover();
   }
 
+  /** Whether `id` is the external id of a meter of this integration (`ext:<selector>:meter:<id>`). */
+  isMeterId(id) {
+    if (typeof id !== 'string') {
+      return false;
+    }
+    const probe = ids(this.gladys, 'x').device;
+    const prefix = probe.slice(0, -1);
+    return id.startsWith(prefix) && ID_PATTERN.test(id.slice(prefix.length));
+  }
+
   async onDeviceCreated(device) {
     const id = device?.external_id;
-    if (typeof id !== 'string' || !this.devices().some((d) => d.external_id === id)) {
+    // Any meter id of this integration, from its form alone: the meter list
+    // may not be read yet after a restart (review 1, I1).
+    if (!this.isMeterId(id)) {
       return;
     }
     // A new device: no reference of its index yet (nor a state kept in /data
@@ -985,5 +1038,13 @@ export class InexogyApp {
 }
 
 function freshNotes() {
-  return { failing: 0, truncated: false, skipped: 0, unsupported: 0, stale: 0, budget: false };
+  return {
+    failing: 0,
+    denied: 0,
+    truncated: false,
+    skipped: 0,
+    unsupported: 0,
+    stale: 0,
+    budget: false,
+  };
 }

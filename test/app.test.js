@@ -274,6 +274,74 @@ test('a password changed at inexogy: the next read asks the list, then stops', a
   assert.equal(cloud.calls.length, calls);
 });
 
+test('review 1, I1: a device created again right after a restart starts afresh', async () => {
+  const store = createMemoryStore();
+  const devices = created(account(), { index: { value: 17312.307, at: NOW } });
+  const s = await setup({ devices, store });
+  await s.start();
+  setEnergy(s, 5);
+  await s.wait(MINUTE);
+  assert.ok(store.data.indexes[INDEX].guard.held, 'the drop is held');
+  await s.gladys.fake.deviceDeleted(s.gladys.devices.find((d) => d.external_id === D(ELEC)));
+  await s.app.stop();
+  // A restart; the user creates the meter again before the first read.
+  const fresh = created();
+  const again = await setup({
+    devices: fresh.filter((d) => d.external_id !== D(ELEC)),
+    store,
+    cloud: s.cloud,
+    now: NOW + MINUTE + 1000,
+  });
+  setEnergy(again, 5);
+  again.gladys.onDeviceCreated((d) => again.app.onDeviceCreated(d));
+  await again.app.start(CONFIG);
+  await again.gladys.fake.deviceCreated(fresh.find((d) => d.external_id === D(ELEC)));
+  assert.equal(store.data.indexes?.[INDEX], undefined, 'the old guard is erased');
+  await again.wait(2 * MINUTE);
+  assert.deepEqual(again.statesOf(INDEX), [5]);
+  assert.doesNotMatch(statusOf(again).message.en, /held back/);
+});
+
+test('review 1, I1: a device of another integration or a bad id is ignored', async () => {
+  const s = await setup();
+  await s.start();
+  assert.equal(s.app.isMeterId(D(ELEC)), true);
+  assert.equal(s.app.isMeterId('ext:other:meter:abc'), false);
+  assert.equal(s.app.isMeterId(`${D('a')}/../x`), false);
+  assert.equal(s.app.isMeterId(undefined), false);
+});
+
+test('review 1, M1: readings refused while the list answers: spaced, "access refused"', async () => {
+  const cloud = createCloud();
+  cloud.override = (path) => (path.includes('last_reading') ? response(403, 'no') : undefined);
+  const s = await setup({ cloud, devices: created() });
+  await s.start();
+  for (let i = 0; i < 30; i += 1) await s.wait(MINUTE);
+  // The list asked once more after the first refusal, then never before the hour.
+  assert.equal(lists(s), 2);
+  // 2 meters, refused at 1, 2, 4, 8, 16 min intervals: far fewer than 2 a minute.
+  assert.ok(reads(s) <= 12, `${reads(s)} refused readings in 30 min`);
+  assert.match(statusOf(s).message.en, /Access refused to 2 meter\(s\)/);
+  assert.equal(statusOf(s).connected, true);
+  cloud.override = () => undefined;
+  await s.wait(HOUR);
+  assert.doesNotMatch(statusOf(s).message.en, /Access refused/);
+});
+
+test('review 1, M3: a wall clock set back never makes a pause longer than 6 h', async () => {
+  const cloud = createCloud();
+  cloud.override = () => response(429, 'slow down', { 'retry-after': '21600' });
+  const s = await setup({ cloud });
+  await s.start();
+  cloud.override = () => undefined;
+  s.app.now = () => s.clock.now - 24 * HOUR;
+  assert.ok(s.app.pauseLeft() <= 6 * HOUR);
+  await s.app.updateStatus();
+  assert.match(statusOf(s).message.en, /6 h/);
+  await s.wait(6 * HOUR + MINUTE);
+  assert.ok(cloud.calls.length > 1);
+});
+
 test('a network failure: retries doubled from the interval', async () => {
   const cloud = createCloud();
   cloud.override = () => 'timeout';

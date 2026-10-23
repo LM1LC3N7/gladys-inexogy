@@ -96,7 +96,9 @@ l'empreinte (salée) des identifiants refusés seulement (effacée au premier
 succès) et la référence de chaque index de consommation. Jamais le mot de
 passe, l'e-mail, un numéro de série ni une adresse : l'adresse qu'inexogy
 garde pour un compteur n'est jamais lue. Les journaux et l'état ne
-contiennent que nos propres mots.
+contiennent que nos propres mots. Dans Gladys même, le numéro de série d'un
+compteur sert au nom de son appareil, et son numéro de série complet et sa
+marque sont des paramètres de l'appareil (gardés dans la base de Gladys).
 
 ## Limites
 

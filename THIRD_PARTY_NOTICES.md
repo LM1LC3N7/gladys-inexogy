@@ -7,8 +7,8 @@ license.
 ## pydiscovergy (jpbede/pydiscovergy)
 
 <https://github.com/jpbede/pydiscovergy>, by Jan-Philipp Benecke, the library
-the inexogy (Discovergy) integration of Home Assistant uses. Version 3.1.0
-(tag `v3.1.0`; repository read at commit 8c69cd2).
+the inexogy (Discovergy) integration of Home Assistant uses, read at commit
+8c69cd2 (2026-08-05), after its last release 3.1.0 (`v3.1.0-227`).
 
 Ported to JavaScript in `src/inexogy/client.js` and `src/inexogy/model.js`:
 the base address of the API (`https://api.inexogy.com/public/v1`), its
@@ -28,7 +28,8 @@ never read as 0, the location of a meter (a postal address) is never read,
 and the consumption index is the meter's own `energy` register only, never
 `energy1`.
 
-Its license, reproduced as it appears in the repository (tag `v3.1.0`):
+Its license, reproduced as it appears in the repository at commit 8c69cd2
+(the same text as at tag `v3.1.0`):
 
 ```
 MIT License

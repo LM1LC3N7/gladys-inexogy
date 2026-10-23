@@ -30,6 +30,11 @@
 - [ ] The `Date` header on every answer (the age of a reading uses it).
 - [ ] Any rate limit of the API (none documented; 1 + N requests a minute by
       default).
+- [ ] The `scalingFactor`, `currentScalingFactor` and `voltageScalingFactor`
+      of `/meters` (review 1, M2): ignored, as Home Assistant does (1 in the
+      pydiscovergy fixture). A meter behind current transformers with a
+      factor other than 1 would give values off by that factor: confirm, then
+      apply them or list such meters without reading them.
 
 ## Decisions
 
@@ -38,7 +43,7 @@
   Release workflow owns them from now on (the first patch release gives
   0.1.1).
 - **Reused project**: pydiscovergy (jpbede/pydiscovergy, MIT, Jan-Philipp
-  Benecke, 3.1.0, commit 8c69cd2), license checked in its LICENSE file,
+  Benecke, read at commit 8c69cd2, after 3.1.0), license checked in its LICENSE file,
   ported to JavaScript: the base address, HTTP Basic, `/meters`,
   `/last_reading`, the shapes of a meter and a reading
   (`THIRD_PARTY_NOTICES.md`, README, docs). The Home Assistant integration
@@ -57,8 +62,18 @@
   restart; other credentials saved, or the test button (one try, never
   sooner than the interval). A 401/403 on one `last_reading` concerns that
   meter only (never the refusal of the account); when every meter answers
-  401/403, the meter list is asked at the next read (where a refusal is
-  final) instead of an hour later.
+  401/403, the meter list is asked ONCE at the next read (where a refusal is
+  final) instead of an hour later. A meter whose reading is refused while
+  the list answers 200 is asked again spaced (the interval, doubled at each
+  refusal, up to 1 h), and the status says "access refused to N meter(s)"
+  (review 1, M1).
+- **Device created** (review 1, I1): `onDeviceCreated` recognises a meter id
+  of this integration by its form alone (`ext:<selector>:meter:<id>`, id
+  checked by `ID_PATTERN`), never by the meter list, which is empty after a
+  restart until the first read: the guard and its /data entry are always
+  erased for a device created again.
+- **Pause capped at each use** (review 1, M3): the time left is never above
+  6 h, even when the wall clock goes back.
 - **Pauses**: 429 anywhere, 5xx on `/meters`, or 5xx on every meter read:
   1 min doubled up to 6 h, or the `Retry-After` within those bounds
   (an HTTP date compared with the `Date` of the answer), kept in /data,

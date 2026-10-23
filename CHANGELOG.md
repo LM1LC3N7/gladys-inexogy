@@ -41,4 +41,14 @@ the notes of the version's GitHub Release.
   `THIRD_PARTY_NOTICES.md` (MIT license of pydiscovergy), shipped in the
   image; a cover generated in plain Node.
 
+### Changed
+
+- Review 1: a meter device deleted and created again right after a restart,
+  before the first read, starts with a fresh index guard (it inherited the
+  old reference and its held drop); readings refused (401/403) while the
+  meter list answers are asked again spaced up to 1 h, the status says
+  "access refused"; a pause never lasts more than 6 h, even with the wall
+  clock set back; the notice names the commit of pydiscovergy read; the
+  privacy section says the serial number names the device.
+
 [Unreleased]: https://github.com/LM1LC3N7/gladys-inexogy/commits/main

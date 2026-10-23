@@ -120,6 +120,10 @@ export const T = {
       en: `${count} meter(s) not read this time (new try at the next read).`,
       fr: `${count} compteur(s) non lu(s) cette fois (nouvel essai à la prochaine lecture).`,
     }),
+    denied: (count) => ({
+      en: `Access refused to ${count} meter(s) by inexogy (HTTP 401 or 403): asked again later, spaced up to 1 h.`,
+      fr: `Accès refusé à ${count} compteur(s) par inexogy (HTTP 401 ou 403) : nouvel essai plus tard, espacé jusqu’à 1 h.`,
+    }),
     truncated: {
       en: 'Only the first 10 meters of the account are read.',
       fr: 'Seuls les 10 premiers compteurs du compte sont lus.',
