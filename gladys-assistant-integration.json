@@ -1,177 +1,94 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "inexogy (Discovergy)",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Unofficial: inexogy (Discovergy) smart meters: power, electricity index, gas, water.",
+    "fr": "Non officiel : compteurs inexogy (Discovergy) : puissance, index d'électricité, gaz, eau."
   },
-  "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
-  "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "version": "0.1.0",
+  "docker_image": "ghcr.io/lm1lc3n7/gladys-inexogy:0.1.0",
+  "gladys_version": ">=5.2.0",
+  "cover_image": "https://raw.githubusercontent.com/LM1LC3N7/gladys-inexogy/main/cover.png",
+  "categories": ["energy"],
+  "transports": ["cloud"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": { "en": "inexogy customer account", "fr": "Compte client inexogy" },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Unofficial connector, not affiliated with inexogy. It reads the smart meters of your inexogy account (formerly Discovergy, Germany) through the official inexogy API, with the e-mail and password of the inexogy web portal: the power and the electricity index every minute (the index is fed to the Gladys energy monitoring), and, when the meter gives them, the tariff registers, the injection, the power and voltage of each phase, and the gas and water meters. Gas and water are plain sensors in m³: they stay out of the energy monitoring. Read-only: nothing is ever commanded. Never tested with a real device.",
+        "fr": "Connecteur non officiel, sans lien avec inexogy. Il lit les compteurs communicants de votre compte inexogy (anciennement Discovergy, Allemagne) par l'API officielle d'inexogy, avec l'e-mail et le mot de passe du portail web inexogy : la puissance et l'index d'électricité chaque minute (l'index alimente le suivi énergétique de Gladys) et, quand le compteur les donne, les registres par tarif, l'injection, la puissance et la tension de chaque phase, et les compteurs de gaz et d'eau. Le gaz et l'eau sont de simples capteurs en m³ : ils restent hors du suivi énergétique. Lecture seule : rien n'est jamais commandé. Jamais testé avec un vrai appareil."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://my.inexogy.com/",
+          "label": { "en": "inexogy web portal", "fr": "Portail web inexogy" }
+        },
+        {
+          "url": "https://github.com/LM1LC3N7/gladys-inexogy/blob/main/docs/fr.md",
+          "label": { "en": "Guide (French)", "fr": "Guide (français)" }
+        },
+        {
+          "url": "https://github.com/LM1LC3N7/gladys-inexogy/blob/main/docs/en.md",
+          "label": { "en": "Guide (English)", "fr": "Guide (anglais)" }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
+      "key": "email",
+      "type": "string",
       "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "label": { "en": "inexogy e-mail", "fr": "E-mail inexogy" },
+      "description": {
+        "en": "The e-mail of your inexogy customer account (the one of the web portal).",
+        "fr": "L'e-mail de votre compte client inexogy (celui du portail web)."
+      },
+      "placeholder": { "en": "e.g. me@example.de", "fr": "ex. moi@exemple.de" }
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
+      "key": "password",
+      "type": "secret",
       "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
-      "required": false,
-      "default": "celsius",
-      "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
-      ]
-    },
-    {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "label": { "en": "inexogy password", "fr": "Mot de passe inexogy" },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
-      },
+        "en": "Kept by Gladys in its database, never shown again, only sent to inexogy (api.inexogy.com, HTTPS) with each request.",
+        "fr": "Gardé par Gladys dans sa base, jamais réaffiché, envoyé seulement à inexogy (api.inexogy.com, en HTTPS) à chaque requête."
+      }
+    },
+    {
+      "key": "poll_minutes",
+      "type": "number",
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": 1,
+      "min": 1,
+      "max": 60,
+      "label": { "en": "Minutes between two reads", "fr": "Minutes entre deux lectures" },
+      "description": {
+        "en": "Each read asks inexogy for the last reading of every meter (and for the meter list once an hour). Never more often, whatever happens (a restart, the test button).",
+        "fr": "Chaque lecture demande à inexogy le dernier relevé de chaque compteur (et la liste des compteurs une fois par heure). Jamais plus souvent, quoi qu'il arrive (un redémarrage, le bouton de test)."
+      }
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
+      "key": "test_connection",
+      "timeout_seconds": 30,
+      "label": { "en": "Test the connection", "fr": "Tester la connexion" },
+      "description": {
+        "en": "Reads the meters of the account once, when the interval allows it; otherwise tells the last read.",
+        "fr": "Lit une fois les compteurs du compte, quand l'intervalle le permet ; sinon indique la dernière lecture."
+      }
     },
     {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
-    }
-  ],
-  "scene_triggers": [
-    {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "accept_held_index",
+      "timeout_seconds": 30,
+      "label": { "en": "Accept the held index", "fr": "Accepter l'index retenu" },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
-      },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
-        }
-      ],
-      "variables": [
-        {
-          "key": "target",
-          "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
-        }
-      ]
-    }
-  ],
-  "scene_actions": [
-    {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
-      },
-      "timeout_seconds": 15,
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ],
-      "outputs": [
-        {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
-        }
-      ]
-    }
-  ],
-  "widgets": [
-    {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
-      },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+        "en": "Only when the status shows an electricity index jump held back and the energy was really consumed: a first click lists the jumps, a second click within 5 minutes takes exactly those values, counted at once as consumption. A drop is never accepted. Saving the configuration never accepts anything.",
+        "fr": "Seulement quand l'état affiche un saut d'index d'électricité retenu et que l'énergie a vraiment été consommée : un premier clic liste les sauts, un second clic dans les 5 minutes prend exactement ces valeurs, comptées d'un coup comme consommation. Une baisse n'est jamais acceptée. Enregistrer la configuration n'accepte jamais rien."
+      }
     }
   ]
 }

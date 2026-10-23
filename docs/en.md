@@ -1,61 +1,105 @@
-# Demo Devices Template
+# inexogy (Discovergy)
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+Unofficial integration, not affiliated with inexogy. It reads the smart
+meters of an **inexogy customer account** (formerly Discovergy, Germany)
+through the **official inexogy API** (`api.inexogy.com`), with the e-mail and
+the password of the inexogy web portal. Read-only: nothing is ever
+commanded.
+
+> **Never tested with a real device** nor a real inexogy account: it was
+> built from the pydiscovergy library (used by Home Assistant) and its test
+> answers. Feedback welcome.
 
 ## What you get
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+One Gladys device per meter of the account:
 
-## Configuration
+| Meter       | Features                                                                                                                                                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Electricity | power (W, as inexogy gives it: negative while injecting on a two-way meter), **consumption index** (kWh, fed to the Gladys energy monitoring), tariff 1 and 2 registers, injection index, power and voltage of each phase |
+| Gas         | gas index (m³), a plain sensor                                                                                                                                                                                            |
+| Water       | water index (m³), a plain sensor                                                                                                                                                                                          |
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+A feature exists only once inexogy gives its value (a counter: once above 0).
+Other kinds of meters (heat...) are listed in the status, not read.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+- The **consumption index** is the meter's own total register (`energy`):
+  the Gladys core derives the consumption and its cost from it. It is never
+  a sum of the tariffs and never holds the injection.
+- **Gas and water stay out of the energy monitoring** (Gladys would price
+  them at the electricity tariff): plain volume sensors.
+- The tariff registers and the injection are plain sensors (kWh in their
+  name): as indexes they would be counted twice, or billed.
 
-## Actions
+## Setup
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+1. In Gladys, open the integration and enter the **e-mail** and the
+   **password** of your inexogy customer account (the ones of
+   <https://my.inexogy.com/>). The password is kept by Gladys in its
+   database, never shown again, and only sent to inexogy
+   (`api.inexogy.com`, HTTPS) with each request (HTTP Basic, the
+   authentication of the official API).
+2. Optionally choose the **minutes between two reads** (1 by default, 60 at
+   most).
+3. Save, then open the **Discover** tab and create the devices you want.
 
-## Scenes
+## How it behaves
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+- **Pace**: one read every interval (the last reading of each meter, and the
+  meter list once an hour), never more often: not after a restart of the
+  container (the time of the last read is kept in `/data`), a reconnection,
+  a save of the form, the Discover tab nor the test button.
+- **Refused login** (HTTP 401 or 403 on the meter list): the integration
+  stops and says so; nothing more is sent with these credentials, even after
+  a restart. Save the right ones, or click "Test the connection" for one more
+  try (never sooner than the interval).
+- **inexogy asks to wait** (HTTP 429, or 5xx on the meter list or on every
+  meter): every read pauses, from 1 minute to 6 hours (its `Retry-After` is
+  followed within those bounds), kept across restarts. A 5xx on one meter
+  only leaves the others going.
+- **Stale reading**: when the last reading of an electricity meter is more
+  than 15 minutes old on the clock of inexogy, its power and voltages are not
+  sent (never an old value as a new one); the counters still are.
+- At most 280 values a minute are sent to Gladys (its limit is 300).
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+## The consumption index is protected
 
-## Dashboard
+Gladys counts every rise of an index in full. A glitch (a register at 0, a
+wrong value) would become thousands of kWh. So:
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+- 0 is never sent;
+- a value lower than the last one (a drop) is held, and never accepted: the
+  index goes on by itself when the register comes back. A meter really
+  replaced or reset: delete its device and create it again;
+- a rise faster than 100 kW on average since the last value (a jump) is
+  held, never confirmed by time, repetition or a restart (kept in `/data`);
+  while held, the last accepted value is sent again and the status says so.
+  If that energy was really consumed, click **"Accept the held index"**
+  twice: the first click lists the jumps, the second (within 5 minutes)
+  takes exactly those values. Saving the configuration never accepts
+  anything.
 
-## Troubleshooting
+After 24 hours without any reading, up to 2,400 kWh may pass at once (the
+margin grows with the time since the last value).
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+## Privacy
+
+`/data/inexogy-state.json` keeps the time of the last read, a pause, the
+fingerprint (salted) of refused credentials only (erased at the first
+success), and the reference of each consumption index. Never the password,
+the e-mail, a serial number nor an address: the location inexogy keeps for a
+meter is never read. The logs and the status hold our own words only.
+
+## Limits
+
+- Only the first 10 meters of an account are read.
+- The scales of the values are the ones of Home Assistant (power in mW,
+  energy in 1e-10 kWh, volume in 1e-3 m³); the water meters were never seen.
+- No history import, no load disaggregation, no statistics.
+- Not the P1 Monitor, YouLess or Tibber integrations.
+
+## Credits
+
+The API calls and the meaning of the values are ported from
+[pydiscovergy](https://github.com/jpbede/pydiscovergy) (MIT, Jan-Philipp
+Benecke); see `THIRD_PARTY_NOTICES.md`.
