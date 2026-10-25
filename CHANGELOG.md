@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-25
+
 ### Fixed
 
 - Reads never started with a real clock on a fresh install.
@@ -57,5 +59,6 @@ the notes of the version's GitHub Release.
   clock set back; the notice names the commit of pydiscovergy read; the
   privacy section says the serial number names the device.
 
-[Unreleased]: https://github.com/LM1LC3N7/gladys-inexogy/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/LM1LC3N7/gladys-inexogy/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/LM1LC3N7/gladys-inexogy/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/LM1LC3N7/gladys-inexogy/releases/tag/v0.1.1
