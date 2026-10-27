@@ -1,6 +1,6 @@
 {
   "name": "gladys-inexogy",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "inexogy (formerly Discovergy) smart meters for Gladys Assistant through the official inexogy API: power, a guarded electricity index fed to the energy monitoring, tariffs, injection, phases, gas and water as sensors. Read-only.",
   "type": "module",
