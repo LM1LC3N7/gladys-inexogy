@@ -129,6 +129,30 @@ test('the index: never 0, a jump held until two clicks, then exactly that value'
   assert.doesNotMatch(statusOf(s).message.en, /held back/);
 });
 
+test('a jump accepted, then the register back near the reference: held as a jump, two clicks take it', async () => {
+  const s = await setup({ devices: created(account(), { index: { value: 17312.307, at: NOW } }) });
+  setEnergy(s, 22312.307);
+  await s.start();
+  await s.app.acceptHeldIndex();
+  await s.wait(MINUTE);
+  const accepted = await s.app.acceptHeldIndex();
+  assert.match(accepted.en, /Accepted: .*17312\.307 -> 22312\.307/);
+  // The register comes back before the next read: never a drop, never published.
+  setEnergy(s, 17312.4);
+  await s.wait(MINUTE);
+  assert.ok(s.statesOf(INDEX).every((v) => v === 17312.307));
+  assert.match(statusOf(s).message.en, /held back.*17312\.307 -> 17312\.4 kWh/);
+  assert.doesNotMatch(statusOf(s).message.en, /drop/);
+  const first = await s.app.acceptHeldIndex();
+  assert.match(first.en, /Nothing accepted yet/);
+  await s.wait(MINUTE);
+  const second = await s.app.acceptHeldIndex();
+  assert.match(second.en, /Accepted: .*17312\.307 -> 17312\.4/);
+  await s.wait(MINUTE);
+  assert.equal(s.statesOf(INDEX).at(-1), 17312.4);
+  assert.doesNotMatch(statusOf(s).message.en, /held back/);
+});
+
 test('a drop is held and never accepted; it ends when the register comes back', async () => {
   const s = await setup({ devices: created(account(), { index: { value: 17312.307, at: NOW } }) });
   setEnergy(s, 10);
