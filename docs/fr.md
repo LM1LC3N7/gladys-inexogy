@@ -75,7 +75,8 @@ une valeur fausse) deviendrait des milliers de kWh. Donc :
 
 - 0 n'est jamais envoyé ;
 - une valeur plus basse que la précédente (une baisse) est retenue, et
-  jamais acceptée : l'index reprend seul quand le registre revient. Un
+  jamais acceptée : l'index reprend seul quand le registre revient ; s'il revient au-dessus de la
+  référence après un saut accepté, il est retenu comme un saut (deux clics). Un
   compteur vraiment remplacé ou remis à zéro : supprimez son appareil et
   recréez-le ;
 - une hausse plus rapide que 100 kW en moyenne depuis la dernière valeur (un

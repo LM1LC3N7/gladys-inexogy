@@ -51,8 +51,8 @@ const withNotes = (first, notes) => ({
 const heldLine = ({ label, direction, from, to }) =>
   direction === 'down'
     ? {
-        en: `${label}: ${kwh(from)} -> ${kwh(to)} kWh (a drop: never accepted, the index goes on by itself when the register comes back)`,
-        fr: `${label} : ${kwh(from)} -> ${kwh(to)} kWh (une baisse : jamais acceptée, l’index reprend seul quand le registre revient)`,
+        en: `${label}: ${kwh(from)} -> ${kwh(to)} kWh (a drop: never accepted, the index goes on by itself when the register comes back; above the reference, after an accepted jump, it is held as a jump: two clicks)`,
+        fr: `${label} : ${kwh(from)} -> ${kwh(to)} kWh (une baisse : jamais acceptée, l’index reprend seul quand le registre revient ; au-dessus de la référence, après un saut accepté, elle est retenue comme un saut : deux clics)`,
       }
     : {
         en: `${label}: ${kwh(from)} -> ${kwh(to)} kWh (+${kwh(to - from)} kWh counted at once)`,
@@ -156,8 +156,8 @@ export const T = {
       fr: 'Aucun index n’est retenu : rien à accepter.',
     },
     drop: {
-      en: 'The index held back is a drop: it is never accepted, the index goes on by itself when the register comes back. A meter really replaced or reset: delete its device and create it again from the Discover tab. Nothing to accept.',
-      fr: 'L’index retenu est une baisse : elle n’est jamais acceptée, l’index reprend seul quand le registre revient. Un compteur vraiment remplacé ou remis à zéro : supprimez son appareil et recréez-le depuis l’onglet Découverte. Rien à accepter.',
+      en: 'The index held back is a drop: it is never accepted, the index goes on by itself when the register comes back (if it comes back above the reference after an accepted jump, it is held as a jump, accepted in two clicks). A meter really replaced or reset: delete its device and create it again from the Discover tab. Nothing to accept.',
+      fr: 'L’index retenu est une baisse : elle n’est jamais acceptée, l’index reprend seul quand le registre revient (s’il revient au-dessus de la référence après un saut accepté, il est retenu comme un saut, accepté en deux clics). Un compteur vraiment remplacé ou remis à zéro : supprimez son appareil et recréez-le depuis l’onglet Découverte. Rien à accepter.',
     },
     /** First click: what a second click would take, nothing taken yet. `drops`: drops held, never taken. */
     list: (items, within, drops = 0) => ({

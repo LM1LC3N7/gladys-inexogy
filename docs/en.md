@@ -69,7 +69,8 @@ wrong value) would become thousands of kWh. So:
 
 - 0 is never sent;
 - a value lower than the last one (a drop) is held, and never accepted: the
-  index goes on by itself when the register comes back. A meter really
+  index goes on by itself when the register comes back; if it comes back above
+  the reference after an accepted jump, it is held as a jump (two clicks). A meter really
   replaced or reset: delete its device and create it again;
 - a rise faster than 100 kW on average since the last value (a jump) is
   held, never confirmed by time, repetition or a restart (kept in `/data`);
