@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-29
+
 ### Fixed
 
 - The counter guard keeps an accepted jump as a floor: a reading back under
@@ -71,7 +73,8 @@ the notes of the version's GitHub Release.
   clock set back; the notice names the commit of pydiscovergy read; the
   privacy section says the serial number names the device.
 
-[Unreleased]: https://github.com/LM1LC3N7/gladys-inexogy/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/LM1LC3N7/gladys-inexogy/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/LM1LC3N7/gladys-inexogy/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/LM1LC3N7/gladys-inexogy/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/LM1LC3N7/gladys-inexogy/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/LM1LC3N7/gladys-inexogy/releases/tag/v0.1.1
